@@ -22,6 +22,7 @@ def all():
         req = request.form['select']
         if req == 'random':
             random.shuffle(teachers)
+
         elif req == 'rating':
             teachers.sort(key=itemgetter('rating'), reverse=True)
 
@@ -41,10 +42,7 @@ def goal(goal):
     try:
         with open('data.json', 'r', encoding='utf-8') as f:
             teachers = json.load(f)
-            teachers_by_goal = []
-            for teacher in teachers:
-                if goal in teacher['goals']:
-                    teachers_by_goal.append(teacher)
+            teachers_by_goal = [teacher for teacher in teachers if goal in teacher['goals']]
 
             return render_template('goal.html', goal=goal, goals=goals, emodji=emodji, teachers=teachers_by_goal)
     except Exception as e:
