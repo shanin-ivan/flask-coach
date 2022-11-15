@@ -1,6 +1,4 @@
 from flask import Flask, render_template, abort, request, redirect, url_for
-from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, SubmitField, EmailField
 from data import goals, week, emodji
 import json
 import random
