@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block body %}
+
+
+    <main class="container mt-3">
+        <div class="card my-4 mx-auto">
+            <div class="card-body m-2 m-md-4">
+                <article class="row">
+                    <div class="col-5"><img src="{{ teacher.picture }}" class="img-fluid" alt=""></div>
+                    <div class="col-7">
+
+                        <section class="teacher=info">
+
+                            <h1 class="h2">{{ teacher.name }}</h1>
+                            <p><span
+                                    class="badge badge-secondary mr-2">Для путешествий </span>Рейтинг: {{ teacher.rating }}
+                                Ставка: {{ teacher.price }}
+                                / час</p>
+                            <p>{{ teacher.about }}</p>
+
+                        </section>
+
+                        <section class="available ">
+
+                            <h4 class="mb-4 mt-5 ">Записаться на пробный урок</h4>
+                            {% for day, times in teacher.free.items() %}
+                                <h6 class="mt-4">{{ week[day] }}</h6>
+                                {% if times.values()|sum > 1 %}
+                                    {% for time, bool in times.items() %}
+                                        {% if bool %}
+
+
+                                        <a href="{{ url_for('form', id=id, day=day, time=time) }}" class="btn btn-outline-success mr-2">{{ time }} свободно</a>
+                                        {% endif %}
+
+
+
+                                    {% endfor %}
+                                {% else %}
+                                    <p>Нет свободных уроков</p>
+
+
+                                {% endif %}
+
+
+                            {% endfor %}
+
+                            {#                            <h6 class="mt-4">Понедельник</h6>#}
+                            {#                            <a href="#" class="btn btn-outline-success mr-2">12:00 свободно</a>#}
+                            {#                            <a href="#" class="btn btn-outline-success  mr-2">14:00 свободно</a>#}
+                            {##}
+                            {#                            <h6 class="mt-4">Вторник</h6>#}
+                            {#                            <a href="#" class="btn btn-outline-success  mr-2">14:00 свободно</a>#}
+                            {#                            <a href="#" class="btn btn-outline-success  mr-2">16:00 свободно</a>#}
+                            {##}
+                            {#                            <h6 class="mt-4">Среда</h6>#}
+                            {#                            <a href="#" class="btn btn-outline-success  mr-2">14:00 свободно</a>#}
+                            {#                            <a href="#" class="btn btn-outline-success  mr-2">16:00 свободно</a>#}
+                            {#                            <a href="#" class="btn btn-outline-success  mr-2">18:00 свободно</a>#}
+                            {##}
+                            {#                            <h6 class="mt-4">Четверг</h6>#}
+                            {##}
+                            {#                            <p>Нет свободных уроков</p>#}
+                            {##}
+                            {#                            <h6 class="mt-4">Пятница</h6>#}
+                            {#                            <a href="#" class="btn btn-outline-success  mr-2">14:00 свободно</a>#}
+                            {#                            <a href="#" class="btn btn-outline-success  mr-2">16:00 свободно</a>#}
+                            {#                            <a href="#" class="btn btn-outline-success  mr-2">18:00 свободно</a>#}
+
+                        </section>
+
+                    </div>
+                </article>
+            </div>
+
+        </div>
+    </main>
+{% endblock %}

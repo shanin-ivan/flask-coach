@@ -1,0 +1,23 @@
+{% set navs = [{'url': url_for('all'), 'title': 'Все репетиторы'},
+              {'url': url_for('request_teacher'), 'title': 'Заявка на подбор'}] %}
+<header class="container mt-3">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="{{ url_for('index') }}">TUTORHUB</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                {% for nav in navs %}
+                    <li class="nav-item {% if request.path == nav.url %}active{% endif %} ">
+                        <a class="nav-link" href="{{ nav.url }}">{{ nav.title }}</a>
+                    </li>
+                {% endfor %}
+
+
+            </ul>
+        </div>
+        <span class="navbar-text d-sm-none d-lg-block">😊</span>
+    </nav>
+</header>
