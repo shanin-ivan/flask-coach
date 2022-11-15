@@ -107,7 +107,7 @@ def form(id, day, time):
         with open('data.json', 'r', encoding='utf-8') as f:
             teacher = json.load(f)[id]
             return render_template('booking.html', id=id, day=day, time=time, teacher=teacher, week=week)
-    except:
+    except Exception:
         abort(404)
 
 
