@@ -1,17 +1,41 @@
 from flask import Flask, render_template, abort, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+# from sqlalchemy.sql.expression import func
+from flask_migrate import Migrate
 from data import goals, week, emodji
 import json
 import random
 from operator import itemgetter
+import os
+import psycopg2
+
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = True
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+
+class Teacher(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    about = db.Column(db.Text, nullable=False)
+    rating = db.Column(db.Float, nullable=False)
+    picture = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Integer, nullable=False)
+    goals = db.Column(db.ARRAY(db.String), nullable=False)
+    free = db.Column(db.JSON, nullable=False)
 
 
 @app.route('/')
 def index():
-    with open('data.json', 'r', encoding='utf-8') as f:
-        teachers = random.choices(json.load(f), k=6)
-        return render_template('index.html', teachers=teachers)
+
+    teachers = db.session.query(Teacher).order_by(db.func.random()).limit(6)
+    return render_template('index.html', teachers=teachers)
+    # with open('data.json', 'r', encoding='utf-8') as f:
+        #     teachers = random.choices(json.load(f), k=6)
 
 
 @app.route('/all', methods=['GET', 'POST'])
@@ -52,9 +76,11 @@ def goal(goal):
 @app.route('/profiles/<int:id>')
 def profile(id):
     try:
-        with open('data.json', 'r', encoding='utf-8') as f:
-            teacher = json.load(f)[id]
-            return render_template('profile.html', teacher=teacher, week=week, id=id)
+        teacher = db.session.query(Teacher).get_or_404(id)
+        return render_template('profile.html', teacher=teacher, week=week, id=id)
+        # with open('data.json', 'r', encoding='utf-8') as f:
+        #     teacher = json.load(f)[id]
+        #     return render_template('profile.html', teacher=teacher, week=week, id=id)
     except Exception:
         abort(404)
 
