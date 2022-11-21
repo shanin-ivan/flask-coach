@@ -9,11 +9,10 @@ from operator import itemgetter
 import os
 import psycopg2
 
-
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = True
+# app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -27,62 +26,108 @@ class Teacher(db.Model):
     price = db.Column(db.Integer, nullable=False)
     goals = db.Column(db.ARRAY(db.String), nullable=False)
     free = db.Column(db.JSON, nullable=False)
+    bookings = db.relationship('Booking', back_populates='teacher')
+
+
+class Booking(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    weekday = db.Column(db.String(10), nullable=False)
+    time = db.Column(db.Time, nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'))
+    client_name = db.Column(db.String(50), nullable=False)
+    client_phone = db.Column(db.String(50), nullable=False)
+    teacher = db.relationship('Teacher', back_populates='bookings', uselist=False)
+
+
+class Request(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    goal = db.Column(db.String(15), nullable=False)
+    time = db.Column(db.String(10), nullable=False)
+    name = db.Column(db.String(20), nullable=False)
+    tel = db.Column(db.String(50), nullable=False)
 
 
 @app.route('/')
 def index():
-
     teachers = db.session.query(Teacher).order_by(db.func.random()).limit(6)
     return render_template('index.html', teachers=teachers)
     # with open('data.json', 'r', encoding='utf-8') as f:
-        #     teachers = random.choices(json.load(f), k=6)
+    #     teachers = random.choices(json.load(f), k=6)
+
+
+# @app.route('/test')
+# def test():
+#     teacher = db.session.query(Teacher).get_or_404(27)
+#     return teacher.bookings.count
 
 
 @app.route('/all', methods=['GET', 'POST'])
 def all():
-    with open('data.json', 'r', encoding='utf-8') as f:
-        teachers = json.load(f)
     if request.method == 'POST':
         req = request.form['select']
         if req == 'random':
-            random.shuffle(teachers)
+            teachers = db.session.query(Teacher).order_by(db.func.random()).all()
 
         elif req == 'rating':
-            teachers.sort(key=itemgetter('rating'), reverse=True)
+            teachers = db.session.query(Teacher).order_by(Teacher.rating.desc()).all()
 
         elif req == 'high':
-            teachers.sort(key=itemgetter('price'), reverse=True)
+            teachers = db.session.query(Teacher).order_by(Teacher.price.desc()).all()
 
         elif req == 'low':
-            teachers.sort(key=itemgetter('price'))
+            teachers = db.session.query(Teacher).order_by(Teacher.price).all()
+        else:
+            teachers = db.session.query(Teacher).all()
 
-        return render_template('all.html', teachers=teachers, req=req)
-    random.shuffle(teachers)
+        return render_template('all.html', teachers=teachers)
+    teachers = db.session.query(Teacher).all()
     return render_template('all.html', teachers=teachers)
+
+    # with open('data.json', 'r', encoding='utf-8') as f:
+    #     teachers = json.load(f)
+    # if request.method == 'POST':
+    #     req = request.form['select']
+    #     if req == 'random':
+    #         random.shuffle(teachers)
+    #
+    #     elif req == 'rating':
+    #         teachers.sort(key=itemgetter('rating'), reverse=True)
+    #
+    #     elif req == 'high':
+    #         teachers.sort(key=itemgetter('price'), reverse=True)
+    #
+    #     elif req == 'low':
+    #         teachers.sort(key=itemgetter('price'))
+    #
+    #     return render_template('all.html', teachers=teachers, req=req)
+    # random.shuffle(teachers)
+    # return render_template('all.html', teachers=teachers)
 
 
 @app.route('/goals/<goal>')
 def goal(goal):
-    try:
-        with open('data.json', 'r', encoding='utf-8') as f:
-            teachers = json.load(f)
-            teachers_by_goal = [teacher for teacher in teachers if goal in teacher['goals']]
+    teachers = db.session.query(Teacher).filter(Teacher.goals.any(goal)).all()
+    return render_template('goal.html', teachers=teachers, goal=goal, goals=goals, emodji=emodji)
 
-            return render_template('goal.html', goal=goal, goals=goals, emodji=emodji, teachers=teachers_by_goal)
-    except Exception as e:
-        abort(404, e)
+    # try:
+    #     with open('data.json', 'r', encoding='utf-8') as f:
+    #         teachers = json.load(f)
+    #         teachers_by_goal = [teacher for teacher in teachers if goal in teacher['goals']]
+    #
+    #         return render_template('goal.html', goal=goal, goals=goals, emodji=emodji, teachers=teachers_by_goal)
+    # except Exception as e:
+    #     abort(404, e)
 
 
 @app.route('/profiles/<int:id>')
 def profile(id):
-    try:
-        teacher = db.session.query(Teacher).get_or_404(id)
-        return render_template('profile.html', teacher=teacher, week=week, id=id)
-        # with open('data.json', 'r', encoding='utf-8') as f:
-        #     teacher = json.load(f)[id]
-        #     return render_template('profile.html', teacher=teacher, week=week, id=id)
-    except Exception:
-        abort(404)
+
+    teacher = db.session.query(Teacher).get_or_404(id)
+    return render_template('profile.html', teacher=teacher, week=week, id=id)
+    # with open('data.json', 'r', encoding='utf-8') as f:
+    #     teacher = json.load(f)[id]
+    #     return render_template('profile.html', teacher=teacher, week=week, id=id)
+
 
 
 @app.route('/request')
@@ -93,51 +138,50 @@ def request_teacher():
 @app.route('/request_done')
 def request_done():
     req = request.args.to_dict()
+    request_form = Request(goal=req['goal'], time=req['time'], name=req['name'], tel=req['tel'])
+    db.session.add(request_form)
     try:
-        with open('request.json', 'r', encoding='utf-8') as f:
-            file = json.load(f)
-            file.append(req)
-
-    except (json.decoder.JSONDecodeError, FileNotFoundError):
-        file = [req]
-
-    with open('request.json', 'w+', encoding='utf-8') as f:
-        json.dump(file, f, ensure_ascii=False, indent=2)
-
-    return render_template('request_done.html', goals=goals, req=req)
-
-
-@app.route('/booking/<int:id>/<day>/<time>', methods=['GET', 'POST'])
-def form(id, day, time):
-    if request.method == 'POST':
-
-        request_detail = request.form.to_dict()
-        name = request_detail['clientName']
-        tel = request_detail['clientPhone']
-        try:
-            with open('booking.json', 'r', encoding='utf-8') as f:
-                file = json.load(f)
-                file.append(request_detail)
-
-        except (json.decoder.JSONDecodeError, FileNotFoundError):
-            file = [request_detail]
-
-        with open('booking.json', 'w+', encoding='utf-8') as f:
-            json.dump(file, f, ensure_ascii=False, indent=2)
-
-        return redirect(url_for('booking_done', day=day, time=time, name=name, tel=tel))
-
-    try:
-        with open('data.json', 'r', encoding='utf-8') as f:
-            teacher = json.load(f)[id]
-            return render_template('booking.html', id=id, day=day, time=time, teacher=teacher, week=week)
+        db.session.commit()
     except Exception:
         abort(404)
+    return render_template('request_done.html', goals=goals, req=req)
+
+    # req = request.args.to_dict()
+    # try:
+    #     with open('request.json', 'r', encoding='utf-8') as f:
+    #         file = json.load(f)
+    #         file.append(req)
+    #
+    # except (json.decoder.JSONDecodeError, FileNotFoundError):
+    #     file = [req]
+    #
+    # with open('request.json', 'w+', encoding='utf-8') as f:
+    #     json.dump(file, f, ensure_ascii=False, indent=2)
+    #
+    # return render_template('request_done.html', goals=goals, req=req)
 
 
-@app.route('/booking-done/<day>/<time>/<name>/<tel>')
-def booking_done(day, time, name, tel):
-    return render_template('booking_done.html', day=week[day], time=time, name=name, tel=tel)
+@app.route('/booking/<int:id>/<day>/<time>')
+def form(id, day, time):
+    teacher = db.session.query(Teacher).get_or_404(id)
+    return render_template('booking.html', id=id, day=day, time=time, teacher=teacher, week=week)
+
+
+@app.route('/booking-done', methods=['POST'])
+def booking_done():
+    req = request.form.to_dict()
+    booking = Booking(weekday=req['weekday'], time=req['time'], teacher_id=req['teacher_id'],
+                      client_name=req['name'], client_phone=req['phone'])
+    db.session.add(booking)
+    try:
+        db.session.commit()
+    except Exception:
+        abort(500)
+
+    return render_template(
+        'booking_done.html', day=week[req['weekday']], time=req['time'],
+        name=req['name'], tel=req['phone']
+    )
 
 
 if __name__ == '__main__':
