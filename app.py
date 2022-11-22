@@ -1,18 +1,14 @@
-from flask import Flask, render_template, abort, request, redirect, url_for
+from flask import Flask, render_template, abort, request
 from flask_sqlalchemy import SQLAlchemy
-# from sqlalchemy.sql.expression import func
 from flask_migrate import Migrate
 from data import goals, week, emodji
-import json
-import random
-from operator import itemgetter
-import os
 import psycopg2
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://xebrtwjlkifehn' \
+                                        ':75f4586d8a74e7534c813303e74a7d26b4a57c4c5d9e72308b31d2afb648eba5@' \
+                                        'ec2-52-208-164-5.eu-west-1.compute.amazonaws.com:5432/dbj23a6618tgcd'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -53,12 +49,6 @@ def index():
     return render_template('index.html', teachers=teachers)
     # with open('data.json', 'r', encoding='utf-8') as f:
     #     teachers = random.choices(json.load(f), k=6)
-
-
-# @app.route('/test')
-# def test():
-#     teacher = db.session.query(Teacher).get_or_404(27)
-#     return teacher.bookings.count
 
 
 @app.route('/all', methods=['GET', 'POST'])
@@ -121,13 +111,11 @@ def goal(goal):
 
 @app.route('/profiles/<int:id>')
 def profile(id):
-
     teacher = db.session.query(Teacher).get_or_404(id)
     return render_template('profile.html', teacher=teacher, week=week, id=id)
     # with open('data.json', 'r', encoding='utf-8') as f:
     #     teacher = json.load(f)[id]
     #     return render_template('profile.html', teacher=teacher, week=week, id=id)
-
 
 
 @app.route('/request')
